@@ -41,8 +41,37 @@ const loginStyles = StyleSheet.create({
         marginBottom: 20,
         borderRadius: 60
     },
+    btnTransparent2: {
+        backgroundColor: 'rgba(52, 52, 52, 0)',
+        borderColor: color.BLUE,
+        width: 100,
+        marginRight:20,
+        borderWidth: 2,
+        marginBottom: 20,
+        borderRadius: 60
+    },
+    btnTransparent3: {
+        backgroundColor: 'rgba(52, 52, 52, 0)',
+        borderColor: color.BLUE,
+        width: 280,
+        marginTop:20,
+        marginRight:20,
+        marginLeft:40,
+
+        borderWidth: 2,
+        marginBottom: 20,
+        borderRadius: 60
+    },
 
     btntxt: {
+        textAlign: 'center',
+        fontSize: 17,
+        color: color.WHITE,
+        paddingVertical: 15,
+       // fontFamily: 'Poppins-Bold',
+    },
+
+    btntxt2: {
         textAlign: 'center',
         fontSize: 17,
         color: color.WHITE,

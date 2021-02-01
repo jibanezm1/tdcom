@@ -6,6 +6,8 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>tdcomb</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Se solicita acceso a bluethooth para conectar Dispositivo de impresion Termica</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

@@ -11,6 +11,7 @@ import   ListadoScreen from '@screens/Listado';
 import   ImprimirScreen from '@screens/Imprimir';
 import   ImprimirgScreen from '@screens/Imprimirg';
 import   ImprimircScreen from '@screens/Imprimirc';
+import   reporteScreen from '@screens/reporte';
 
 import   SeleccionaScreen from '@screens/selecciona';
 
@@ -97,6 +98,12 @@ const appNavigation = createStackNavigator({
     },
     selecciona:{
         screen: SeleccionaScreen,
+        navigationOptions:{
+            headerShown : false
+        }
+    },
+    reporte:{
+        screen: reporteScreen,
         navigationOptions:{
             headerShown : false
         }
