@@ -59,18 +59,26 @@ export default function EmitirScreen(props) {
   const [paso1, setPaso1] = useState();
   const [paso2, setPaso2] = useState();
   const [hidePassword, setHidePassword] = useState(false);
+  const [sucursal, setSucursal] = useState();
+
   var dateFormat = require('dateformat');
-  LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
   useEffect(() => {
     loadtipo();
     load();
     load2();
     loadCarro();
     loadtipo();
+    codigosii();
 
     var _listeners = [];
     let respuesta;
   }, [global]);
+
+  const codigosii = async () => {
+    const value = await AsyncStorage.getItem('@codigosii');
+    let valor = JSON.parse(value);
+    setSucursal(valor);
+  };
 
   const remove = async (productos) => {
     const values = await AsyncStorage.getItem('@carro');
@@ -257,6 +265,27 @@ export default function EmitirScreen(props) {
     myHeaders.append('Authorization', 'Basic ' + hash);
     loadtipo();
     console.log(tipo);
+
+
+    if(sucursal){
+      if(sucursal!=0){
+        var emisore = {
+          RUTEmisor: estado.rut + '-' + contri,
+          CdgSIISucur: sucursal
+        };
+      }else{
+        var emisore = {
+          RUTEmisor: estado.rut + '-' + contri,
+        };
+      }
+      
+    }else{
+      var emisore = {
+        RUTEmisor: estado.rut + '-' + contri,
+      };
+    }
+
+
     if (tipo == 41) {
       var raw = JSON.stringify({
         Encabezado: {
@@ -264,9 +293,7 @@ export default function EmitirScreen(props) {
             TipoDTE: '41',
             IndServicio: '3',
           },
-          Emisor: {
-            RUTEmisor: estado.rut + '-' + contri,
-          },
+          Emisor:emisore,
           Receptor: {
             RUTRecep: '66666666-6',
             RznSocRecep: 'Sin razon social informada',
@@ -286,9 +313,7 @@ export default function EmitirScreen(props) {
           IdDoc: {
             TipoDTE: tipo,
           },
-          Emisor: {
-            RUTEmisor: estado.rut + '-' + contri,
-          },
+          Emisor: emisore,
           Receptor: {
             RUTRecep: '66666666-6',
             RznSocRecep: 'Persona sin RUT',

@@ -37,7 +37,8 @@ const appNavigation = createStackNavigator({
     Principal:{
         screen: PrincipalScreen,
         navigationOptions:{
-            headerShown : false
+            headerShown : true,
+            title:"Configuraciones"
         }
     },
     escpos:{
@@ -105,7 +106,8 @@ const appNavigation = createStackNavigator({
     reporte:{
         screen: reporteScreen,
         navigationOptions:{
-            headerShown : false
+            headerShown : true,
+            title:"Reporte de Ventas"
         }
     }
 

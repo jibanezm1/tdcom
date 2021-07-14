@@ -45,12 +45,13 @@ export default function EmitirScreen(props) {
   const [usuario, setUsuario] = useState();
   const [contri, setContri] = useState();
   const [tipo, setTipo] = useState();
+  const [sucursal, setSucursal] = useState();
 
   useEffect(() => {
+    codigosii();
     loadtipo();
     load();
     load2();
-
     var _listeners = [];
     let respuesta;
 
@@ -92,6 +93,13 @@ export default function EmitirScreen(props) {
     const value = await AsyncStorage.getItem('@tipo');
     let valor = JSON.parse(value);
     setTipo(valor);
+  };
+
+  const codigosii = async () => {
+    const value = await AsyncStorage.getItem('@codigosii');
+    let valor = JSON.parse(value);
+    console.log("Este es el valor que toma al cargar:"+value);
+    setSucursal(valor);
   };
 
   const load = async () => {
@@ -238,6 +246,19 @@ export default function EmitirScreen(props) {
     var myHeaders = new Headers();
     myHeaders.append('Authorization', 'Basic ' + hash);
 
+    console.log("esta es la sucursal:"+sucursal);
+
+    if(sucursal != 0){
+      var emisore = {
+        RUTEmisor: usuario + '-' + contri,
+        CdgSIISucur: sucursal
+      };
+    }else{
+      var emisore = {
+        RUTEmisor: usuario + '-' + contri,
+      };
+    }
+    
     if (tipo == 41) {
       var raw2 = JSON.stringify({
         Encabezado: {
@@ -245,9 +266,7 @@ export default function EmitirScreen(props) {
             TipoDTE: '41',
             IndServicio: '3',
           },
-          Emisor: {
-            RUTEmisor: usuario + '-' + contri,
-          },
+          Emisor: emisore,
           Receptor: {
             RUTRecep: '66666666-6',
             RznSocRecep: 'Sin razon social informada',
@@ -276,9 +295,7 @@ export default function EmitirScreen(props) {
           IdDoc: {
             TipoDTE: 39,
           },
-          Emisor: {
-            RUTEmisor: usuario + '-' + contri,
-          },
+          Emisor: emisore,
           Receptor: {
             RUTRecep: '66666666-6',
             RznSocRecep: 'Persona sin RUT',

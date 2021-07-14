@@ -76,6 +76,8 @@ class FlatListWithSearch extends Component {
   };
 
   test2 = (item) => {
+
+    console.log(item);
     var myHeaders = new Headers();
     myHeaders.append('Authorization', 'Basic ' + this.state.hash);
 
@@ -87,10 +89,9 @@ class FlatListWithSearch extends Component {
     //76955668
     // YWpZbmcyaE53NlY5d1N2b0ZoVlVTeGdveGxxOW1Nb246WA==
 
-    console.log(item);
     fetch(
       this.state.usuario.url +
-        '/api/dte/dte_emitidos/info/39/' +
+        '/api/dte/dte_emitidos/info/'+item.dte+'/' +
         item.folio +
         '/' +
         this.state.usuario.rut +
@@ -127,7 +128,7 @@ class FlatListWithSearch extends Component {
         };
         fetch(
           this.state.usuario.url +
-            '/api/dte/dte_emitidos/info/39/' +
+            '/api/dte/dte_emitidos/info/'+item.dte+'/' +
             resultado.folio +
             '/' +
             resultado.emisor +
@@ -202,6 +203,7 @@ class FlatListWithSearch extends Component {
   };
 
   renderItem = (item) => {
+
     return (
       <View key={item.key} style={styles.item}>
         <TouchableOpacity onPress={() => this.showItem(item)}>

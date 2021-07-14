@@ -86,24 +86,44 @@ export default function LoginScreen(props) {
     const value2 = await AsyncStorage.getItem('@tipo');
 
     if (value !== null) {
-      console.log(value);
-      console.log(value2);
-
       props.navigation.navigate('dashboard');
     } else {
     }
   };
 
+  const _storeDatas = async () => {
+    try {
+      const jsonValue = JSON.stringify(0);
+
+      await AsyncStorage.setItem('@codigosii', jsonValue);
+      const value = await AsyncStorage.getItem('@codigosii');
+      if (value !== null) {
+        // We have data!!
+        // this.setState({
+        //   isEnabled: result,
+        // });
+        console.log('Sucursal actual del inicio de la app es:'+ value)
+        // console.log(this.state.isEnabled);
+      } else {
+        console.log('no guardo nada de sucursal por default');
+      }
+    } catch (error) {
+      // Error saving data
+    }
+  }
+
   const _storeData = async (result) => {
     try {
       const jsonValue = JSON.stringify(result);
       const jsonValue2 = JSON.stringify(39);
+      const jsonValue3 = JSON.stringify(2);
 
       await AsyncStorage.setItem('@user', jsonValue);
       await AsyncStorage.setItem('@tipo', jsonValue2);
+      await AsyncStorage.setItem('@terminal', jsonValue3);
 
       const value = await AsyncStorage.getItem('@user');
-      
+
       if (value !== null) {
         // We have data!!
         // console.log(value);
@@ -117,17 +137,46 @@ export default function LoginScreen(props) {
       // Error saving data
     }
   };
+
+  const _storeData3 = async (result) => {
+    try {
+      let lassucursales = [];
+      let variable = result.sucursales;
+
+      var imprimir = Object.entries(result.sucursales);
+
+      for (let item of imprimir) {
+        lassucursales.push({
+          codigo: item[0],
+          nombre: item[1],
+        });
+      }
+
+      const jsonValue = JSON.stringify(lassucursales);
+      await AsyncStorage.setItem('@sucursales', jsonValue);
+      const value = await AsyncStorage.getItem('@sucursales');
+      if (value !== null) {
+        // We have data!!
+        // console.log(value);
+        console.log('lassucursales:' + value);
+      } else {
+        console.log('lassucursales:' + value);
+
+        console.log('nada');
+      }
+    } catch (error) {
+      // Error saving data
+    }
+  };
+
   const _storeData2 = async (result) => {
     try {
-
-      const jsonValue = result.dv
+      const jsonValue = result.dv;
       await AsyncStorage.setItem('@contri', jsonValue);
       const value = await AsyncStorage.getItem('@contri');
       if (value !== null) {
         // We have data!!
         // console.log(value);
-        console.log(value);
-
       } else {
         console.log('nada');
       }
@@ -145,7 +194,7 @@ export default function LoginScreen(props) {
       headers: myHeaders,
       redirect: 'follow',
     };
-    console.log(value.url + '/api/dte/contribuyentes/info/' + value.rut);
+
     fetch(
       value.url + '/api/dte/contribuyentes/info/' + value.rut,
       requestOptions,
@@ -153,20 +202,19 @@ export default function LoginScreen(props) {
       .then((response) => response.text())
       .then((result) => {
         const valor = JSON.parse(result);
-      
+
         if (result == 'Cabecera Authorization es incorrecta') {
           alert('El Hash ingresado es incorrecto.');
         } else {
-          console.log(value.rut);
           if (valor.rut == value.rut) {
             _storeData2(valor);
-            props.navigation.navigate('dashboard');
+            _storeData3(valor);
+
+             props.navigation.navigate('dashboard');
           } else {
             alert('El rut ingresado no esta en nuestra plataforma.');
           }
         }
-
-        console.log('este es resultado:' + result);
       })
       .catch((error) => console.log('error', error));
   };
@@ -198,19 +246,18 @@ export default function LoginScreen(props) {
               setRut('76955668');
               setHash('ajYng2hNw6V9wSvoFhVUSxgoxlq9mMon');
 
-              console.log(rut);
               var bytes = utf8.encode(hash + ':x');
               var encoded = base64.encode(hash + ':x');
-              console.log(encoded);
+
               var resultado = {
                 url: estado,
                 token: encoded,
                 rut: rut,
               };
-
+              _storeDatas();
               _storeData(resultado);
-            }else{
-                setRut(null);
+            } else {
+              setRut(null);
               setHash(null);
             }
           }}>
@@ -224,7 +271,6 @@ export default function LoginScreen(props) {
         <MyTextInput
           onChangeText={(value) => {
             setRut(value);
-            console.log(rut);
           }}
           value={rut}
           placeholder="Ingrese el rut del contribuyente"
@@ -234,7 +280,6 @@ export default function LoginScreen(props) {
         <MyTextInput
           onChangeText={(value) => {
             setHash(value);
-            console.log(hash);
           }}
           value={hash}
           keyboardType="email-address"
@@ -246,16 +291,15 @@ export default function LoginScreen(props) {
           <TouchableOpacity
             onPress={() => {
               if (estado && hash && rut) {
-                console.log(estado);
                 var bytes = utf8.encode(hash + ':x');
                 var encoded = base64.encode(hash + ':x');
-                console.log(encoded);
+
                 var resultado = {
                   url: estado,
                   token: encoded,
                   rut: rut,
                 };
-
+                _storeDatas();
                 _storeData(resultado);
               } else {
                 alert('Ingrese y seleccione todos los campos');

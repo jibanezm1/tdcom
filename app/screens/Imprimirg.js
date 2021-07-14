@@ -25,6 +25,7 @@ import {
 import {Calculator, CalculatorInput} from 'react-native-calculator';
 import base64 from 'react-native-base64';
 import AsyncStorage from '@react-native-community/async-storage';
+import SunmiV2Printer from 'react-native-sunmi-v2-printer';
 
 export default function ImprimirScreen(props) {
   console.log(props.navigation.state.params.items);
@@ -32,6 +33,7 @@ export default function ImprimirScreen(props) {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [terminado, setTerminado] = useState(true);
   const [tipo, setTipo] = useState();
+  const [terminal, setTerminal] = useState();
 
   const [dispositivo, setDispositivo] = useState();
   const [total, setTotal] = useState();
@@ -41,6 +43,8 @@ export default function ImprimirScreen(props) {
   const [estado, setearState] = useState();
   const [hash, setHash] = useState();
   const [resolucion, setResolucion] = useState();
+  const [sucursal, setSucursal] = useState();
+
   const stylesss = StyleSheet.create({
     input: {
       height: 100,
@@ -53,6 +57,8 @@ export default function ImprimirScreen(props) {
   useEffect(() => {
     load();
     loadtipo();
+    loadTerminal();
+    codigosii();
 
     var _listeners = [];
     let respuesta;
@@ -86,14 +92,22 @@ export default function ImprimirScreen(props) {
       );
     }
   }, []);
-
+  const codigosii = async () => {
+    const value = await AsyncStorage.getItem('@codigosii');
+    let valor = JSON.parse(value);
+    setSucursal(valor);
+  };
 
   const loadtipo = async () => {
     const value = await AsyncStorage.getItem('@tipo');
     let valor = JSON.parse(value);
     setTipo(valor);
   };
-
+  const loadTerminal = async () => {
+    const value = await AsyncStorage.getItem('@terminal');
+    let valor = JSON.parse(value);
+    setTerminal(valor);
+  };
   const load = async () => {
     const value = await AsyncStorage.getItem('@user');
     if (value !== null) {
@@ -119,7 +133,9 @@ export default function ImprimirScreen(props) {
     };
     console.log(
       estado +
-        '/api/dte/dte_emitidos/info/'+tipo+'/' +
+        '/api/dte/dte_emitidos/info/' +
+        tipo +
+        '/' +
         resultado.folio +
         '/' +
         resultado.emisor +
@@ -127,7 +143,9 @@ export default function ImprimirScreen(props) {
     );
     fetch(
       estado +
-        '/api/dte/dte_emitidos/info/'+tipo+'/' +
+        '/api/dte/dte_emitidos/info/' +
+        tipo +
+        '/' +
         resultado.folio +
         '/' +
         resultado.emisor +
@@ -313,6 +331,17 @@ export default function ImprimirScreen(props) {
 
     var contri = result;
 
+    let lassucursal = 0;
+    if (result.sucursales) {
+      var imprimir = Object.entries(result.sucursales);
+
+      for (let item of imprimir) {
+        if (resultado.sucursal_sii == item[0]) {
+          lassucursal = item[1];
+        }
+      }
+    }
+
     try {
       await BluetoothEscposPrinter.printerInit();
       await BluetoothEscposPrinter.printerLeftSpace(0);
@@ -342,7 +371,15 @@ export default function ImprimirScreen(props) {
         {},
       );
       await BluetoothEscposPrinter.printText(
+        'Comuna:  ' + contri.comuna_glosa + '\r\n',
+        {},
+      );
+      await BluetoothEscposPrinter.printText(
         'Direccion ' + contri.direccion + '\r\n',
+        {},
+      );
+      await BluetoothEscposPrinter.printText(
+        'Telefono: ' + contri.telefono + '\r\n',
         {},
       );
       await BluetoothEscposPrinter.printText(
@@ -359,7 +396,13 @@ export default function ImprimirScreen(props) {
         'Fecha: ' + resultado.fecha_hora_creacion + '\r\n',
         {},
       );
-
+      console.log(resultado.sucursal_sii);
+      if (resultado.sucursal_sii) {
+        await BluetoothEscposPrinter.printText(
+          'Sucursal SII: ' + lassucursal + '\r\n',
+          {},
+        );
+      }
       await BluetoothEscposPrinter.printText(
         '--------------------------------\r\n',
         {},
@@ -399,7 +442,7 @@ export default function ImprimirScreen(props) {
             indice.toString(),
             row.NmbItem.toString().substr(0, 4),
             row.QtyItem.toString(),
-            totallinea.toString(),
+            totallinea.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'),
           ],
           {},
         );
@@ -412,19 +455,30 @@ export default function ImprimirScreen(props) {
       );
       if (tipo == 39) {
         await BluetoothEscposPrinter.printText(
-          'El IVA de esta boleta es: ' + resultado.iva + '\r\n',
-          {},
-        );
-      }else{
-        await BluetoothEscposPrinter.printText(
-          'El Total Exento es: ' + resultado.total.toString() + '\r\n',
+          'El IVA de esta boleta es: ' +
+            resultado.iva.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') +
+            '\r\n',
           {},
         );
         await BluetoothEscposPrinter.printText(
-          'El Total Boleta es: ' + resultado.total.toString() + '\r\n',
+          'El Total Boleta es: ' +
+            resultado.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') +
+            '\r\n',
           {},
         );
-        
+      } else {
+        await BluetoothEscposPrinter.printText(
+          'El Total Exento es: ' +
+            resultado.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') +
+            '\r\n',
+          {},
+        );
+        await BluetoothEscposPrinter.printText(
+          'El Total Boleta es: ' +
+            resultado.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') +
+            '\r\n',
+          {},
+        );
       }
 
       await BluetoothEscposPrinter.printerAlign(
@@ -452,10 +506,163 @@ export default function ImprimirScreen(props) {
       );
 
       await BluetoothEscposPrinter.printText('\r\n\r\n\r\n', {});
+      props.navigation.push('emitirg');
     } catch (e) {
       alert(
         'Existe problema de configuración con la impresora revise su conexion.',
       );
+    }
+  };
+
+  const print = async (resultado, result) => {
+    const dire =
+      estado +
+      '/dte/dte_emitidos/pdf/' +
+      resultado.dte +
+      '/' +
+      resultado.folio +
+      '/' +
+      resultado.certificacion +
+      '/' +
+      resultado.emisor +
+      '/' +
+      resultado.fecha +
+      '/' +
+      resultado.total;
+
+    var contri = result;
+    
+    let lassucursal = 0;
+    if (resultado.sucursales) {
+      var imprimir = Object.entries(result.sucursales);
+
+      for (let item of imprimir) {
+        if (resultado.sucursal_sii == item[0]) {
+          lassucursal = item[1];
+        }
+      }
+    }
+
+    let columnAliment = [0, 1, 1, 2];
+    let columnWidth = [5, 10, 10, 5];
+    try {
+      //set aligment: 0-left,1-center,2-right
+      await SunmiV2Printer.setAlignment(1);
+
+      //SunmiV2Printer.commitPrinterBuffer();
+
+      await SunmiV2Printer.setFontSize(40);
+      await SunmiV2Printer.printOriginalText(contri.razon_social + '\r\n');
+      await SunmiV2Printer.setFontSize(20);
+      await SunmiV2Printer.setAlignment(0);
+      await SunmiV2Printer.printOriginalText(
+        'Rut ' + contri.rut + '-' + contri.dv + '\r\n',
+      );
+      await SunmiV2Printer.printOriginalText(
+        'Comuna ' + contri.comuna_glosa + '\r\n',
+      );
+      await SunmiV2Printer.printOriginalText(
+        'Direccion ' + contri.direccion + '\r\n',
+      );
+      await SunmiV2Printer.printOriginalText(
+        'Telefono: ' + contri.telefono + '\r\n',
+      );
+      await SunmiV2Printer.printOriginalText(
+        'BOLETA ELECTRONICA No ' + resultado.folio + ' \r\n',
+      );
+      const giro = quitar(contri.giro);
+
+      await SunmiV2Printer.printOriginalText('Giro: ' + giro + '\r\n');
+      await SunmiV2Printer.printOriginalText(
+        'Fecha: ' + resultado.fecha_hora_creacion + '\r\n',
+      );
+      if (result.sucursal_sii != 0) {
+        await SunmiV2Printer.printOriginalText(
+          'Sucursal SII: ' + lassucursal + '\r\n',
+        );
+      }
+      await SunmiV2Printer.printOriginalText(
+        '======================================\n',
+      );
+
+      await SunmiV2Printer.setFontSize(22);
+
+      var detalless = ['ID', 'Item', 'Cant', 'total'];
+
+      await SunmiV2Printer.printColumnsText(
+        detalless,
+        columnWidth,
+        columnAliment,
+      );
+
+      let rows = props.navigation.state.params.items;
+      let indice = 1;
+      for (let i in rows) {
+        let row = rows[i];
+
+        var totallinea = row.QtyItem * row.PrcItem;
+
+        var detalles = [
+          indice.toString(),
+          row.NmbItem.toString().substr(0, 4),
+          row.QtyItem.toString(),
+          totallinea.toString(),
+        ];
+
+        await SunmiV2Printer.printColumnsText(
+          detalles,
+          columnWidth,
+          columnAliment,
+        );
+        indice++;
+      }
+
+      await SunmiV2Printer.setFontSize(20);
+      await SunmiV2Printer.printOriginalText(
+        '======================================\n',
+      );
+      await SunmiV2Printer.setAlignment(2);
+      await SunmiV2Printer.setFontSize(20);
+      if (tipo == 39) {
+        await SunmiV2Printer.printOriginalText(
+          'El IVA de esta boleta es: ' + resultado.iva + '\r\n',
+        );
+        await SunmiV2Printer.printOriginalText(
+          'El Total de esta boleta es: ' + resultado.total.toString() + '\r\n',
+        );
+      } else {
+        await SunmiV2Printer.printOriginalText(
+          'El Total Exento es: ' + resultado.total.toString() + '\r\n',
+        );
+        await SunmiV2Printer.printOriginalText(
+          'El Total de esta boleta es: ' + resultado.total.toString() + '\r\n',
+        );
+      }
+      await SunmiV2Printer.setAlignment(1);
+
+      await SunmiV2Printer.setFontSize(20);
+      await SunmiV2Printer.printOriginalText(
+        '======================================\n',
+      );
+      await SunmiV2Printer.printOriginalText('Copia Cliente\r\n');
+      await SunmiV2Printer.printOriginalText('Validada como Boleta\r\n');
+      await SunmiV2Printer.printOriginalText('Autorizada por el SII\r\n');
+      await SunmiV2Printer.printOriginalText(
+        'RES. EX. NRO.' +
+          resultado.resolucion.numero +
+          ' ' +
+          resultado.resolucion.fecha +
+          '\r\n',
+      );
+      await SunmiV2Printer.printOriginalText('\n\n');
+      await SunmiV2Printer.printQRCode(props.navigation.state.params.url, 4, 3);
+
+      await SunmiV2Printer.printOriginalText('\n\n');
+      await SunmiV2Printer.printOriginalText('\n\n');
+      await SunmiV2Printer.printOriginalText('\n\n');
+      props.navigation.push('emitirg');
+    } catch (e) {
+      console.log(e);
     }
   };
 
@@ -501,10 +708,17 @@ export default function ImprimirScreen(props) {
           <View style={loginStyles.btnTransparent2}>
             <TouchableOpacity
               onPress={() => {
-                imprimir(
-                  props.navigation.state.params.paso1,
-                  props.navigation.state.params.paso2,
-                );
+                if (terminal == 1) {
+                  print(
+                    props.navigation.state.params.paso1,
+                    props.navigation.state.params.paso2,
+                  );
+                } else {
+                  imprimir(
+                    props.navigation.state.params.paso1,
+                    props.navigation.state.params.paso2,
+                  );
+                }
               }}>
               <Text style={[loginStyles.btntxt2, {color: color.BLUE}]}>SI</Text>
             </TouchableOpacity>

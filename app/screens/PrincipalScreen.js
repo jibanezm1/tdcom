@@ -34,7 +34,8 @@ import color from '@styles/colors';
 import AsyncStorage from '@react-native-community/async-storage';
 
 var {height, width} = Dimensions.get('window');
-var   isEnabled = false;
+var isEnabled = false;
+var isEnableds = false;
 
 export default class Home extends Component {
   _listeners = [];
@@ -42,6 +43,7 @@ export default class Home extends Component {
   constructor(props) {
     super();
     this.check();
+    this.check2();
 
     this.state = {
       devices: null,
@@ -52,13 +54,45 @@ export default class Home extends Component {
       boundAddress: '',
       debugMsg: '',
       isVisible: false,
+      isVisibles: false,
+      isVisible3: false,
+      isEnabledd:39,
+      list3: props.navigation.state.params.sucursales,
+      list2: [
+        {
+          title: 'Terminal SUMMI',
+          titleStyle: {color: 'black'},
+          onPress: () => {
+            // this.setState({isEnabled: true});
+            isEnableds = 1;
+            this._storeDatas(1);
+            this.setState({isVisibles: false});
+          },
+        },
+        {
+          title: 'Terminal Generico',
+          titleStyle: {color: 'black'},
+          onPress: () => {
+            isEnableds = 2;
+            this._storeDatas(2);
+            this.setState({isVisibles: false});
+          },
+        },
+        {
+          title: 'Cancelar',
+          containerStyle: {backgroundColor: '#2288dd'},
+          titleStyle: {color: 'white'},
+          onPress: () => this.setState({isVisibles: false}),
+        },
+      ],
       list: [
         {
           title: 'Boleta Normal',
           titleStyle: {color: 'black'},
           onPress: () => {
             // this.setState({isEnabled: true});
-            isEnabled = 39;
+            this.state.isEnableds = 39;
+            this.setState({isEnabledd:39});
             this._storeData(39);
             this.setState({isVisible: false});
           },
@@ -68,9 +102,9 @@ export default class Home extends Component {
           titleStyle: {color: 'black'},
           onPress: () => {
             isEnabled = 41;
+            this.setState({isEnabledd:41});
             this._storeData(41);
             this.setState({isVisible: false});
-
           },
         },
         {
@@ -85,6 +119,7 @@ export default class Home extends Component {
 
   componentDidMount() {
     //alert(BluetoothManager)
+    console.log(this.state.list3 )
     BluetoothManager.isBluetoothEnabled().then(
       (enabled) => {
         this.setState({
@@ -172,9 +207,30 @@ export default class Home extends Component {
     const value = await AsyncStorage.getItem('@tipo');
     if (value !== null) {
       isEnabled = value;
+      this.setState({isEnabledd:value});
+
+      console.log(value);
       // this.setState({isEnabled: value});
     }
   }
+
+  async sucursales() {
+    const value = await AsyncStorage.getItem('@sucursales');
+    if (value !== null) {
+      this.setState({list3: value});
+      // this.setState({isEnabled: value});
+    }
+  }
+
+  async check2() {
+    const value = await AsyncStorage.getItem('@terminal');
+    if (value !== null) {
+      isEnabled = value;
+      // this.setState({isEnabled: value});
+    }
+  }
+
+  
 
   async _storeData(result) {
     try {
@@ -188,6 +244,50 @@ export default class Home extends Component {
         //   isEnabled: result,
         // });
         isEnabled = value;
+
+        // console.log(this.state.isEnabled);
+      } else {
+        console.log('nada');
+      }
+    } catch (error) {
+      // Error saving data
+    }
+  }
+
+
+  async _storeDataS(result) {
+    try {
+      const jsonValue = JSON.stringify(result);
+      console.log(result);
+      await AsyncStorage.setItem('@codigosii', jsonValue);
+      const value = await AsyncStorage.getItem('@codigosii');
+      if (value !== null) {
+        // We have data!!
+        // this.setState({
+        //   isEnabled: result,
+        // });
+        console.log('Sucursal actual:'+ value)
+        // console.log(this.state.isEnabled);
+      } else {
+        console.log('nada');
+      }
+    } catch (error) {
+      // Error saving data
+    }
+  }
+
+  async _storeDatas(result) {
+    try {
+      const jsonValue = JSON.stringify(result);
+
+      await AsyncStorage.setItem('@terminal', jsonValue);
+      const value = await AsyncStorage.getItem('@terminal');
+      if (value !== null) {
+        // We have data!!
+        // this.setState({
+        //   isEnabled: result,
+        // });
+        isEnableds = value;
 
         // console.log(this.state.isEnabled);
       } else {
@@ -308,6 +408,40 @@ export default class Home extends Component {
             </ListItem>
           ))}
         </BottomSheet>
+        <BottomSheet
+          isVisible={this.state.isVisibles}
+          containerStyle={{backgroundColor: 'rgba(0.5, 0.25, 0, 0.2)'}}>
+          {this.state.list2.map((l, i) => (
+            <ListItem
+              key={i}
+              containerStyle={l.containerStyle}
+              onPress={l.onPress}>
+              <ListItem.Content>
+                <ListItem.Title style={l.titleStyle}>{l.title}</ListItem.Title>
+              </ListItem.Content>
+            </ListItem>
+          ))}
+        </BottomSheet>
+
+        <BottomSheet
+          isVisible={this.state.isVisible3}
+          containerStyle={{backgroundColor: 'rgba(0.5, 0.25, 0, 0.2)'}}>
+          {this.state.list3.map((l, i) => (
+            <ListItem
+              key={i}
+              containerStyle={l.containerStyle}
+              onPress={(value) => {
+                this._storeDataS(l.codigo);
+                this.setState({isVisible3:false})
+              }}>
+              <ListItem.Content>
+                <ListItem.Title style={l.titleStyle}>{l.nombre}</ListItem.Title>
+              </ListItem.Content>
+            </ListItem>
+          ))}
+        </BottomSheet>
+        
+
         <View style={{marginTop: 50}}>
           <View style={styles.containerLogo}>
             <Image
@@ -316,37 +450,57 @@ export default class Home extends Component {
             />
           </View>
           <View style={styles.containerLogo2}>
-          <Button
-            title="Cambiar Tipo de Boleta"
-            style={{marginBottom: 100, paddingTop: 10}}
-            onPress={() => {
-              this.setState({isVisible: true});
-            }}
-          />
-          
+            <Button
+              title=" Tipo  de  Boleta"
+              style={{marginBottom: 100, paddingTop: 10}}
+              onPress={() => {
+                this.setState({isVisible: true});
+              }}
+            />
+          </View>
+          <View style={styles.containerLogo2}>
+            <Button
+              title="       Sucursal       "
+              style={{marginBottom: 100, paddingTop: 10}}
+              onPress={() => {
+                this.setState({isVisible3: true});
+              }}
+            />
+          </View>
+          <View style={styles.containerLogo2}>
+            <Button
+              title="Tipo de terminal"
+              style={{marginBottom: 100, paddingTop: 10}}
+              onPress={() => {
+                this.setState({isVisibles: true});
+              }}
+            />
           </View>
           <View style={styles.containerLogo}>
-          <Button
-            disabled={this.state.loading || !this.state.bleOpend}
-            onPress={() => {
-              this._scan();
-            }}
-            
-            title="Buscar terminal"
-          />
+            <Button
+              disabled={this.state.loading || !this.state.bleOpend}
+              onPress={() => {
+                this._scan();
+              }}
+              title="Buscar terminal"
+            />
           </View>
-
-         
         </View>
         <View style={styles.containerLogo}></View>
         <Text style={(styles.title, {padding: 10})}>
           Tipo de Boleta Activa:
           <Text style={{color: 'blue'}}>
-            {isEnabled == 39
-              ? 'Boleta Normal'
-              : 'Boleta Exenta'}
+            {this.state.isEnabledd == 39 ? 'Boleta Normal' : 'Boleta Exenta'}
           </Text>
         </Text>
+
+        <Text style={(styles.title, {padding: 10})}>
+          Tipo de Terminal:
+          <Text style={{color: 'blue'}}>
+            {isEnableds == 1 ? 'Terminal SUMMI' : ' Terminal Generico'}
+          </Text>
+        </Text>
+
         <Text style={(styles.title, {padding: 10})}>
           Terminal Conectada:
           <Text style={{color: 'blue'}}>

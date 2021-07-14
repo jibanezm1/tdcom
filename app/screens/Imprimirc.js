@@ -25,10 +25,12 @@ import {
 import {Calculator, CalculatorInput} from 'react-native-calculator';
 import base64 from 'react-native-base64';
 import AsyncStorage from '@react-native-community/async-storage';
+import SunmiV2Printer from 'react-native-sunmi-v2-printer';
 
 export default function ImprimirScreen(props) {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [terminado, setTerminado] = useState(true);
+  const [terminal, setTerminal] = useState();
 
   const [dispositivo, setDispositivo] = useState();
   const [total, setTotal] = useState();
@@ -38,10 +40,13 @@ export default function ImprimirScreen(props) {
   const [estado, setearState] = useState();
   const [hash, setHash] = useState();
   const [tipo, setTipo] = useState();
+  const [sucursal, setSucursal] = useState();
 
   useEffect(() => {
     load();
     loadtipo();
+    loadTerminal();
+    codigosii();
 
     var _listeners = [];
     let respuesta;
@@ -75,7 +80,11 @@ export default function ImprimirScreen(props) {
       );
     }
   }, []);
-
+  const codigosii = async () => {
+    const value = await AsyncStorage.getItem('@codigosii');
+    let valor = JSON.parse(value);
+    setSucursal(valor);
+  };
   const load = async () => {
     const value = await AsyncStorage.getItem('@user');
     if (value !== null) {
@@ -88,7 +97,11 @@ export default function ImprimirScreen(props) {
       alert('Sesion ha caducado.');
     }
   };
-
+  const loadTerminal = async () => {
+    const value = await AsyncStorage.getItem('@terminal');
+    let valor = JSON.parse(value);
+    setTerminal(valor);
+  };
   const loadtipo = async () => {
     const value = await AsyncStorage.getItem('@tipo');
     let valor = JSON.parse(value);
@@ -247,6 +260,159 @@ export default function ImprimirScreen(props) {
       .join('')
       .toString();
   };
+
+  const print = async (resultado, result) => {
+    const dire =
+      estado +
+      '/dte/dte_emitidos/pdf/' +
+      resultado.dte +
+      '/' +
+      resultado.folio +
+      '/' +
+      resultado.certificacion +
+      '/' +
+      resultado.emisor +
+      '/' +
+      resultado.fecha +
+      '/' +
+      resultado.total;
+
+    var contri = result;
+
+    let lassucursal = 0;
+    var imprimir = Object.entries(result.sucursales);
+
+    for (let item of imprimir) {
+      if (resultado.sucursal_sii == item[0]) {
+        lassucursal = item[1];
+      }
+    }
+
+    let columnAliment = [0, 1, 1, 2];
+    let columnWidth = [5, 10, 10, 5];
+    try {
+      //set aligment: 0-left,1-center,2-right
+      await SunmiV2Printer.setAlignment(1);
+
+      //SunmiV2Printer.commitPrinterBuffer();
+
+      await SunmiV2Printer.setFontSize(40);
+      await SunmiV2Printer.printOriginalText(contri.razon_social + '\r\n');
+      await SunmiV2Printer.setFontSize(20);
+      await SunmiV2Printer.setAlignment(0);
+      await SunmiV2Printer.printOriginalText(
+        'Rut ' + contri.rut + '-' + contri.dv + '\r\n',
+      );
+      await SunmiV2Printer.printOriginalText(
+        'Comuna: ' + contri.comuna_glosa + '\r\n',
+      );
+      await SunmiV2Printer.printOriginalText(
+        'Direccion: ' + contri.direccion + '\r\n',
+      );
+      await SunmiV2Printer.printOriginalText(
+        'BOLETA ELECTRONICA No ' + resultado.folio + ' \r\n',
+      );
+      const giro = quitar(contri.giro);
+
+      await SunmiV2Printer.printOriginalText('Giro: ' + giro + '\r\n');
+      await SunmiV2Printer.printOriginalText(
+        'Fecha: ' + resultado.fecha_hora_creacion + '\r\n',
+      );
+
+      if (resultado.sucursal_sii) {
+        await SunmiV2Printer.printOriginalText(
+          'Sucursal SII: ' + lassucursal + '\r\n',
+        );
+      }
+      await SunmiV2Printer.printOriginalText(
+        '======================================\n',
+      );
+
+      await SunmiV2Printer.setFontSize(22);
+
+      var detalless = ['ID', 'Item', 'Cant', 'total'];
+
+      await SunmiV2Printer.printColumnsText(
+        detalless,
+        columnWidth,
+        columnAliment,
+      );
+
+      let rows = props.navigation.state.params.items;
+      let indice = 1;
+      for (let i in rows) {
+        let row = rows[i];
+
+        var totallinea = row.QtyItem * row.PrcItem;
+
+        var detalles = [
+          indice.toString(),
+          row.NmbItem.toString().substr(0, 4),
+          row.QtyItem.toString(),
+          totallinea.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."),
+        ];
+
+        await SunmiV2Printer.printColumnsText(
+          detalles,
+          columnWidth,
+          columnAliment,
+        );
+        indice++;
+      }
+
+      await SunmiV2Printer.setFontSize(20);
+      await SunmiV2Printer.printOriginalText(
+        '======================================\n',
+      );
+      await SunmiV2Printer.setAlignment(2);
+      await SunmiV2Printer.setFontSize(20);
+      
+      if (props.navigation.state.params.tipo == 41) {
+
+        await SunmiV2Printer.printOriginalText(
+          'El Total Exento es: ' + resultado.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '\r\n',
+        );
+        await SunmiV2Printer.printOriginalText(
+          'El Total de esta boleta es: ' + resultado.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '\r\n',
+        );
+
+      
+      } else {
+        await SunmiV2Printer.printOriginalText(
+          'El IVA de esta boleta es: ' + resultado.iva.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '\r\n',
+        );
+        await SunmiV2Printer.printOriginalText(
+          'El Total de esta boleta es: ' + resultado.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '\r\n',
+        );
+      }
+
+      await SunmiV2Printer.setAlignment(1);
+
+      await SunmiV2Printer.setFontSize(20);
+      await SunmiV2Printer.printOriginalText(
+        '======================================\n',
+      );
+      await SunmiV2Printer.printOriginalText('Copia Cliente\r\n');
+      await SunmiV2Printer.printOriginalText('Validada como Boleta\r\n');
+      await SunmiV2Printer.printOriginalText('Autorizada por el SII\r\n');
+      await SunmiV2Printer.printOriginalText(
+        'RES. EX. NRO.' +
+        props.navigation.state.params.paso1.resolucion.numero +
+        ' ' +
+        props.navigation.state.params.paso1.resolucion.fecha +
+        '\r\n',
+      );
+      await SunmiV2Printer.printOriginalText('\n\n');
+      await SunmiV2Printer.printQRCode(props.navigation.state.params.url, 4, 3);
+
+      await SunmiV2Printer.printOriginalText('\n\n');
+      await SunmiV2Printer.printOriginalText('\n\n');
+      await SunmiV2Printer.printOriginalText('\n\n');
+    } catch (e) {
+      alert(e);
+    }
+  };
+
   const imprimir = async (resultado, result) => {
     const dire =
       estado.url +
@@ -264,6 +430,16 @@ export default function ImprimirScreen(props) {
       resultado.total;
 
     var contri = result;
+
+    let lassucursal = 0;
+
+    var imprimir = Object.entries(result.sucursales);
+
+    for (let item of imprimir) {
+      if (resultado.sucursal_sii == item[0]) {
+        lassucursal = item[1];
+      }
+    }
 
     try {
       await BluetoothEscposPrinter.printerInit();
@@ -294,6 +470,10 @@ export default function ImprimirScreen(props) {
         {},
       );
       await BluetoothEscposPrinter.printText(
+        'Comuna: ' + contri.comuna_glosa + '\r\n',
+        {},
+      );
+      await BluetoothEscposPrinter.printText(
         'Direccion ' + contri.direccion + '\r\n',
         {},
       );
@@ -311,6 +491,13 @@ export default function ImprimirScreen(props) {
         'Fecha: ' + resultado.fecha_hora_creacion + '\r\n',
         {},
       );
+        console.log(lassucursal);
+      if (resultado.sucursal_sii) {
+        await BluetoothEscposPrinter.printText(
+          'Sucursal SII: ' + lassucursal + '\r\n',
+          {},
+        );
+      }
 
       await BluetoothEscposPrinter.printText(
         '--------------------------------\r\n',
@@ -345,7 +532,7 @@ export default function ImprimirScreen(props) {
             row.NroLinDet.toString(),
             row.NmbItem.toString().substr(0, 4),
             row.QtyItem.toString(),
-            row.PrcItem.toString(),
+            row.PrcItem.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."),
           ],
           {},
         );
@@ -355,24 +542,24 @@ export default function ImprimirScreen(props) {
         '--------------------------------\r\n',
         {},
       );
-      console.log("----------------");
+      console.log('----------------');
 
       console.log(resultado);
 
-      if(props.navigation.state.params.tipo==41){
+      if (props.navigation.state.params.tipo == 41) {
         await BluetoothEscposPrinter.printText(
-          'Total Excento: ' + resultado.total + '\r\n',
+          'Total Excento: ' + resultado.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '\r\n',
           {},
         );
-      }else{
+      } else {
         await BluetoothEscposPrinter.printText(
-          'El IVA de esta boleta es: ' + resultado.iva + '\r\n',
+          'El IVA de esta boleta es: ' + resultado.iva.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '\r\n',
           {},
         );
       }
-     
+
       await BluetoothEscposPrinter.printText(
-        'Total: ' + resultado.total + '\r\n',
+        'Total: ' + resultado.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '\r\n',
         {},
       );
 
@@ -461,10 +648,17 @@ export default function ImprimirScreen(props) {
         <View style={loginStyles.btnTransparent}>
           <TouchableOpacity
             onPress={() => {
-              imprimir(
-                props.navigation.state.params.paso1,
-                props.navigation.state.params.paso2,
-              );
+              if (terminal == 1) {
+                print(
+                  props.navigation.state.params.paso1,
+                  props.navigation.state.params.paso2,
+                );
+              } else {
+                imprimir(
+                  props.navigation.state.params.paso1,
+                  props.navigation.state.params.paso2,
+                );
+              }
             }}>
             <Text style={[loginStyles.btntxt, {color: color.BLUE}]}>
               Imprimir

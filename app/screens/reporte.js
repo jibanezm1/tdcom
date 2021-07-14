@@ -16,6 +16,7 @@ import {loginStyles} from '@styles/styles';
 import AsyncStorage from '@react-native-community/async-storage';
 import { ScrollView } from 'react-native-gesture-handler';
 import filter from 'lodash.filter';
+import SunmiV2Printer from 'react-native-sunmi-v2-printer';
 
 import {
   BluetoothEscposPrinter,
@@ -26,7 +27,6 @@ import {
 
 export default class reporteScreen extends Component {
   constructor(props) {
-    LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
 
     super(props);
     this.state = {date1: ''};
@@ -44,9 +44,11 @@ export default class reporteScreen extends Component {
       folioinicial:'',
       foliofinal:'',
       query: '',
+      terminal: '',
       fullData: []
         };
     this.load();
+    this.loadTerminal();
   }
 
   load = async () => {
@@ -59,6 +61,12 @@ export default class reporteScreen extends Component {
     } else {
       alert('Sesion ha caducado.');
     }
+  };
+
+  loadTerminal = async () => {
+    const value = await AsyncStorage.getItem('@terminal');
+    let valor = JSON.parse(value);
+    this.setState({terminal:valor});
   };
  
 
@@ -141,6 +149,58 @@ export default class reporteScreen extends Component {
     );
   };
 
+
+   async print(resultado, result){
+    
+
+    let columnAliment = [0, 1, 1];
+    let columnWidth = [10, 10, 10];
+    try {
+      //set aligment: 0-left,1-center,2-right
+      await SunmiV2Printer.setAlignment(1);
+
+      //SunmiV2Printer.commitPrinterBuffer();
+
+     
+      await SunmiV2Printer.setFontSize(22);
+
+      var detalless = ['Folio', 'fecha', 'Monto'];
+
+      await SunmiV2Printer.printColumnsText(
+        detalless,
+        columnWidth,
+        columnAliment,
+      );
+      await SunmiV2Printer.printOriginalText(
+        '==================================\n',
+      );
+      for (let i in this.state.data) {
+        let row = this.state.data[i];
+        var detalles = [row.folio.toString(), row.fecha.toString(), row.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")];
+        await SunmiV2Printer.printColumnsText(
+          detalles,
+          columnWidth,
+          columnAliment,
+        );
+      }
+
+
+      await SunmiV2Printer.printOriginalText(
+        '==================================\n',
+      );
+      await SunmiV2Printer.setFontSize(30);
+
+      await SunmiV2Printer.printOriginalText('Total consolidado:'+this.state.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")+'\r\n');
+
+      await SunmiV2Printer.printOriginalText('\n\n');
+      await SunmiV2Printer.printOriginalText('\n\n');
+      await SunmiV2Printer.printOriginalText('\n\n');
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+
   imprimir = async() =>{
     try {
       await BluetoothEscposPrinter.printerInit();
@@ -184,7 +244,7 @@ export default class reporteScreen extends Component {
           [
             row.folio.toString(),
             row.fecha.toString(),
-            row.total.toString(),
+            row.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."),
           ],
           {},
         );
@@ -196,7 +256,7 @@ export default class reporteScreen extends Component {
       await BluetoothEscposPrinter.printerAlign(
         BluetoothEscposPrinter.ALIGN.CENTER,
       );
-      await BluetoothEscposPrinter.printText('Total consolidado:'+this.state.total+'\r\n', {});
+      await BluetoothEscposPrinter.printText('Total consolidado:'+this.state.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")+'\r\n', {});
 
       await BluetoothEscposPrinter.printText('\r\n\r\n\r\n', {});
     } catch (e) {
@@ -255,7 +315,7 @@ export default class reporteScreen extends Component {
 
   render() {
     return (
-      <ScrollView style={{marginTop: 100, height:1000}}>
+      <ScrollView style={{marginTop: 30, height:1000}}>
         <Text
           style={{
             height: 100,
@@ -267,7 +327,7 @@ export default class reporteScreen extends Component {
           Filtrar por fechas
         </Text>
 
-        <View style={{flexDirection: 'row', marginLeft: 10, marginRight: 10}}>
+        <View style={{flexDirection: 'row', marginLeft: '10%', marginRight: '10%'}}>
           <DatePicker
             style={{width: 150, color: 'black'}}
             date={this.state.date1}
@@ -328,7 +388,7 @@ export default class reporteScreen extends Component {
             }}
           />
         </View>
-        <View style={loginStyles.btnTransparent3}>
+        <View style={loginStyles.btnTransparent4}>
           <TouchableOpacity
             onPress={() => {
               this.resumen();
@@ -341,19 +401,22 @@ export default class reporteScreen extends Component {
         
         {
           this.state.folioinicial?<View>
-             <Text style={[loginStyles.btntxt, {color: color.BLUE}]}>
-              Folio Inicial: {this.state.folioinicial}
-            </Text>
-            <Text style={[loginStyles.btntxt, {color: color.BLUE}]}>
-              Folio Final: {this.state.foliofinal}
-            </Text>
+             
             <Text style={[loginStyles.btntxt, {color: color.BLUE}]}>
               Total de ventas Periodo: {this.state.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
             </Text>
-            <View style={loginStyles.btnTransparent3}>
+            <View style={loginStyles.btnTransparent4}>
           <TouchableOpacity
             onPress={() => {
-              this.imprimir();
+              console.log(this.state);
+              if(this.state.terminal==1){
+                this.print();
+
+              }else{
+                this.imprimir();
+
+              }
+
             }}>
             <Text style={[loginStyles.btntxt, {color: color.BLUE}]}>
               Imprimir

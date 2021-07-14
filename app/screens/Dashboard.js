@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   Text,
   View,
@@ -16,7 +16,21 @@ import AsyncStorage from '@react-native-community/async-storage';
 
 export default function LoginScreen(props) {
   const [hidePassword, setHidePassword] = useState(false);
+  const [sucursales, setSucursales] = useState();
 
+
+
+  useEffect(() => { 
+  loadsucursales();
+
+  }, []);
+
+
+  const loadsucursales = async () => {
+    const value = await AsyncStorage.getItem('@sucursales');
+    let valor = JSON.parse(value);
+    setSucursales(valor);
+  };
 
   const clearAppData = async function () {
     try {
@@ -27,9 +41,6 @@ export default function LoginScreen(props) {
       console.error('Error clearing app data.');
     }
   };
-
-
-
 
   return (
     <ScrollView>
@@ -50,8 +61,6 @@ export default function LoginScreen(props) {
             <Text style={loginStyles.btntxt}>Emitir Documento</Text>
           </TouchableOpacity>
         </View>
-
-       
 
         <View style={loginStyles.btnTransparent}>
           <TouchableOpacity
@@ -77,10 +86,12 @@ export default function LoginScreen(props) {
         <View style={loginStyles.btnTransparent}>
           <TouchableOpacity
             onPress={() => {
-              props.navigation.push('Principal');
+              props.navigation.push('Principal',{
+                'sucursales': sucursales
+              });
             }}>
             <Text style={[loginStyles.btntxt, {color: color.BLUE}]}>
-              Configurar Terminal
+              Configuraciones
             </Text>
           </TouchableOpacity>
         </View>
